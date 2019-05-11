@@ -21,8 +21,9 @@ import (
 // Précisé le type est optionel
 // La valeur est donné avec `=`
 const (
-	apiUrl1        = "https://api.chucknorris.io/jokes/random"
-	apiUrl2 string = "https://api.chucknorris.io/jokes/random"
+	apiUrl1           = "https://api.chucknorris.io/jokes/random"
+	apiUrl2    string = "https://api.chucknorris.io/jokes/random"
+	printCount        = 3
 )
 
 // Déclaration de structure
@@ -43,7 +44,7 @@ type ChuckNorrisFact struct {
 // Le mot clé func est obligatoire
 // C'est une fonction simple qui ne prend pas d'argument et qui en return un
 // qui est une string
-func getChuckNorrisFact() string {
+func getChuckNorrisFact() ChuckNorrisFact {
 	// Déclaration de variable
 	// Le mot clé var est obligatoire
 	// `f` est le nom de la variable et `ChuckNorrisFact` le type
@@ -66,7 +67,7 @@ func getChuckNorrisFact() string {
 
 	// Le mot clé `return` se comporte comme dans la plupart des autres langages
 	// Comme le C, le python ou le java
-	return f.Value
+	return f
 
 	// Cette fonction fait une rêquete http à l'api chuck norris fact, parse la
 	// réponse http puis le json de l'api et return la fact
@@ -76,23 +77,76 @@ func getChuckNorrisFact() string {
 // Celle ci prend deux arguments et n'en return aucun
 // En GO les arguments sont déclarés dans l'ordre `nom` `type`
 func LauchPrint(arg1 int, arg2 ChuckNorrisFact) {
+	// En GO il existe deux fonctions standard qui permettent "d'allouer" des
+	// variables.
+	// La gestion de la mémoire est automatique mais certain type nécéssite
+	// une "construction" qui se fait avec make
+	// Cet appel à make donne une channel pour le type ChuckNorrisFact
+	// Les channels sont des tableaux qui peuvent être passé à différentes
+	// goroutine pour communiqué
 	c := make(chan ChuckNorrisFact)
 
+	// Le mot clé go permet de lancé une fonction parallèlement à l'exécution
+	// actuel
+	// Dans ce cas l'exécution de la fonction PrintFact va se dérouler en même
+	// temps que la fonction LauchPrint
 	go PrintFact(c)
 
+	// Une boucle for classique, la différence avec le C est l'absence de
+	// parenthèse `()` et l'obligation d'utilisé des acolades `{}` dans tous
+	// les cas
 	for i := 0; i < arg1; i++ {
+		// L'utilisation de la flèche `<-` permet de "push" une valeur dans
+		// une channel, ici `c`
+		// Si la channel est pleinne alors la goroutine actuel bloque
+		// jusqu'à que la channel ait la place nécéssaire
 		c <- arg2
 	}
 
+	// Il est utile d'appellé la fonction standard `close` sur une channel
+	// pour la rendre inutilisable
 	close(c)
+
+	// Cette fonction créée une channel, lance une goroutine avec la fonction
+	// PrintFact en lui pasant la channel créée et "push" arg1 fois la variable
+	// arg2 avant de `close` cette channel
 }
 
 // En GO l'ordre des déclarations des fonctions n'a pas d'importance,
 // la fonction d'haut dessus arrive à trouver celle-ci
+// L'arguement `c` est une channel dont il est seulement possible de "pull"
+// puisque la flèche `<-` est spécifié devant
+// Les channels pour lequels ils seulement possible de "push" sont noté `chan<-`
+// Une channel sans restriction se note simplement `chan`
 func PrintFact(c <-chan ChuckNorrisFact) {
+	// Une for utilisant un range sur une channel
+	// Le mot clé range permet de parcourir chaque valeur d'un conteneur
+	// Ici c'est une channel
+	// Utilisé `range` sur une channel a une particularité, c'est qu'à
+	// chaque itération la plus vielle valeur présente dans la channel va
+	// être récupérer, comme avec la flèche "pull" `<-` qui s'utilise ainsi:
+	// `valeur <- c`
+	// Comme pour la flèche "push", "pull" est une opération qui bloque
+	// tant que les ressources nécéssaires ne sont pas disponibles,
+	// et dans se cas tant qu'il n'y a pas de valeur dans la channel
+	// qui ont été placé avec la flèche "push"
+	// Chaque itération de cette bloque va donc se faire à chaque fois
+	// qu'il y à une valeur qui est "push" dans la channel `c`
+	// De plus, lorsque `range` est utilisé sur une channel, la boucle se
+	// termine lorsque que `close` est utilisé sur la channel
+	// Un equivalent en C pourait ressemblé à celà
+	// for (Type v; is_open(v); v = pull(c)) {}
 	for f := range c {
-		fmt.Println(c)
+
+		// Par défault tous les types peuvent être print
+		// Par exemple, ici il n'y a pas besoin d'avoir une fonction
+		// qui transforme f qui de type `ChuckNorrisFact` en string
+		// pour le print
+		fmt.Println(f)
 	}
+
+	// Cette fonction va récupérer les ChuckNorrisFact et les print
+	// tant que la channel `c` est ouverte
 }
 
 // Encore une autre déclaration de fonction
@@ -142,6 +196,11 @@ func main() {
 	fmt.Println("Pas besoin de \\n")
 	fmt.Print("Un print basic\n")
 	fmt.Printf("Utilie pour %s\n", "formater des strings")
+
+	fmt.Println(CutString("sourcil"))
+	fmt.Println(CutString("saucecice"))
+
+	LauchPrint(printCount, getChuckNorrisFact())
 
 	// Il est possible de lancé rapidement un programme GO sans le recompilé
 	// avec la commande go run monDuFichier sur un source du package main et
