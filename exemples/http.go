@@ -9,13 +9,13 @@ import (
 	"net/http"
 )
 
-// Décalration de constante.
+// Déclaration de constante.
 // Elles peuvent être soit des strings, soit des valeurs numériques.
 const apiUrl = "https://api.chucknorris.io/jokes/random"
 
 // Déclaration de structure.
 // Les champs de structures sont déclarés dans l'ordre: nom type tag.
-// Les tags sont des éléments qui sont utilisés pour la séréalisation.
+// Les tags sont des éléments qui sont utilisés pour la sérialisation.
 type ChuckNorrisFact struct {
 	Category []string `json:"category"`
 	IconURL  string   `json:"icon_url"`
